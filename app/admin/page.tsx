@@ -5,7 +5,14 @@ import { formatDate, formatDuration } from '@/lib/format';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminHome() {
-  const rows = await listAll();
+  let rows: Awaited<ReturnType<typeof listAll>> = [];
+  let dbError: string | null = null;
+  try {
+    rows = await listAll();
+  } catch (err) {
+    dbError = err instanceof Error ? err.message : 'Unknown database error';
+  }
+
   return (
     <>
       <div className="section-head">
@@ -16,9 +23,20 @@ export default async function AdminHome() {
         <Link href="/admin/new" className="btn">+ Upload interview</Link>
       </div>
 
-      {rows.length === 0 ? (
+      {dbError && (
+        <div className="error">
+          <strong>The database is not ready.</strong> {dbError}
+          <br />
+          Check that POSTGRES_URL is set for Production in Vercel, that the tables were created
+          (run the SQL in Neon’s Query editor), and then redeploy.
+        </div>
+      )}
+
+      {!dbError && rows.length === 0 && (
         <p className="muted">No interviews yet. Upload the first one to begin.</p>
-      ) : (
+      )}
+
+      {rows.length > 0 && (
         <table className="admin-table">
           <thead>
             <tr>

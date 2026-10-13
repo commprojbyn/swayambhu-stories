@@ -1,9 +1,7 @@
 'use client';
-import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
 export default function LoginForm() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -12,16 +10,22 @@ export default function LoginForm() {
     setBusy(true);
     setError(null);
     const f = new FormData(e.currentTarget);
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: f.get('email'), password: f.get('password') }),
-    });
-    if (res.ok) {
-      router.replace('/admin');
-      router.refresh();
-    } else {
-      setError('That email or password is not correct.');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: f.get('email'), password: f.get('password') }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error ?? 'Sign-in failed. Check the email and password.');
+        setBusy(false);
+        return;
+      }
+      // Full page load so any server error on the dashboard is shown instead of a stuck spinner.
+      window.location.assign('/admin');
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.');
       setBusy(false);
     }
   }
