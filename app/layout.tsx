@@ -3,6 +3,7 @@ import { Source_Serif_4, Source_Sans_3, Noto_Sans_Devanagari } from 'next/font/g
 import './globals.css';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
+// for
 
 //. Headings use the serif, body text uses the sans. To change a font, swap the import here.
 const serif = Source_Serif_4({ subsets: ['latin'], variable: '--font-serif' });

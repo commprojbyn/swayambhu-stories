@@ -42,6 +42,7 @@ export default function StoryPage() {
           </figure>
         </section>
       ))}
+// for
 
       <blockquote className="pull">“Placeholder quotation.”</blockquote>
 
