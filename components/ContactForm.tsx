@@ -59,7 +59,7 @@ export default function ContactForm() {
       </div>
 
       <div className="field">
-        <label htmlFor="media">Audio or video (optional)</label>
+        <label htmlFor="media">Audio or Video (optional)</label>
         <input className="input" id="media" name="media" type="file" accept="audio/*,video/*" disabled />
         <span className="small muted">Uploads are not available yet.</span>
       </div>

@@ -8,7 +8,7 @@ export default function SiteFooter() {
         <span>
           <Link href="/about" className="muted">Access &amp; consent</Link> ·{' '}
           <Link href="/contact" className="muted">Contact</Link> ·{' '}
-          <Link href="/admin/login" className="muted">Admin sign in</Link>
+          <Link href="/admin/login" className="muted">Admin Sign in</Link>
         </span>
       </div>
     </footer>

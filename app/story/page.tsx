@@ -46,7 +46,7 @@ export default function StoryPage() {
       <blockquote className="pull">“Placeholder quotation.”</blockquote>
 
       <section className="section" style={{ textAlign: 'center', paddingBottom: 0 }}>
-        <h2>Call to action heading</h2>
+        <h2>Call to action heading here</h2>
         <p className="lead" style={{ margin: '0 auto 24px' }}>Placeholder line.</p>
         <Link href="/archive" className="btn">Go to the archive →</Link>
       </section>

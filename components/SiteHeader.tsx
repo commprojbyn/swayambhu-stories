@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
+// header
 const links = [
   { href: '/archive', label: 'Archive' },
   { href: '/story', label: 'The story' },
