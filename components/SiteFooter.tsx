@@ -6,7 +6,9 @@ export default function SiteFooter() {
       <div className="inner">
         <span>Swayambhu Stories · A living oral-history archive</span>
         <span>
-          <Link href="/about" className="muted">Access &amp; consent</Link> · <Link href="/about#contact" className="muted">Contact</Link>
+          <Link href="/about" className="muted">Access &amp; consent</Link> ·{' '}
+          <Link href="/contact" className="muted">Contact</Link> ·{' '}
+          <Link href="/admin/login" className="muted">Admin sign in</Link>
         </span>
       </div>
     </footer>

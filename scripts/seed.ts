@@ -1,14 +1,13 @@
-// Adds the three interviews from the archive preview as placeholders.
-// Their recordings and transcripts are added later through the admin upload page.
+// Adds three placeholder interviews. Edit the text below to replace it later.
 import 'dotenv/config';
 import postgres from 'postgres';
 
 const sql = postgres(process.env.POSTGRES_URL ?? '', { ssl: 'require', max: 1 });
 
 const items = [
-  { slug: 'dawn-rituals-at-swayambhu', title: 'Dawn rituals at Swayambhu', interviewee: 'Maya Shakya', language: 'Nepal Bhasa', recorded_on: '2024-05-14', duration: 2322, topics: ['dawn', 'rituals', 'daily life'], summary: 'A morning-by-morning account of the rituals that open the day at Swayambhu.' },
-  { slug: 'life-around-the-western-steps', title: 'Life around the western steps', interviewee: 'Tsering Lama', language: 'Nepali', recorded_on: '2024-05-18', duration: 2778, topics: ['community', 'steps', 'neighbourhood'], summary: 'Memories of living and working along the western approach to the hill.' },
-  { slug: 'remembering-the-prayer-wheels', title: 'Remembering the prayer wheels', interviewee: 'Ratna Manandhar', language: 'Nepal Bhasa', recorded_on: '2024-05-22', duration: 1926, topics: ['prayer wheels', 'memory', 'tradition'], summary: 'Recollections of the prayer wheels and how the circuit has changed over the years.' },
+  { slug: 'interview-one', title: 'Interview title one', interviewee: 'Interviewee name', language: 'Nepali', recorded_on: '2024-05-14', duration: 2322, topics: ['topic one', 'topic two'], summary: 'Placeholder summary for interview one.' },
+  { slug: 'interview-two', title: 'Interview title two', interviewee: 'Interviewee name', language: 'Nepal Bhasa', recorded_on: '2024-05-18', duration: 2778, topics: ['topic one', 'topic three'], summary: 'Placeholder summary for interview two.' },
+  { slug: 'interview-three', title: 'Interview title three', interviewee: 'Interviewee name', language: 'English', recorded_on: '2024-05-22', duration: 1926, topics: ['topic two', 'topic three'], summary: 'Placeholder summary for interview three.' },
 ];
 
 async function main() {
