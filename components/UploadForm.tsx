@@ -6,8 +6,10 @@ import { extractAudio } from '@/lib/extract-audio';
 import { slugify } from '@/lib/format';
 import { LANGUAGES } from '@/lib/types';
 
-// Reads the video length. The preview link is removed only after the browser
-// has finished with it, which avoids the ERR_FILE_NOT_FOUND message.
+// Files above this size use Blob's piecewise upload, which is the path that
+// was blocked by CORS on preview URLs. Smaller files use a single request.
+const MULTIPART_THRESHOLD = 100 * 1024 * 1024;
+
 function videoDuration(file: File): Promise<number> {
   return new Promise((resolve, reject) => {
     const v = document.createElement('video');
@@ -49,7 +51,6 @@ export default function UploadForm() {
     setBusy(true);
     setError(null);
 
-    // Remember the current stage so any error says where it happened.
     let stage = 'Starting';
     const mark = (s: string) => {
       stage = s;
@@ -66,18 +67,18 @@ export default function UploadForm() {
       mark('Preparing audio in your browser (this can take a while for long videos)');
       const audio = await extractAudio(file, (p) => mark(`Preparing audio… ${p}%`));
 
-      mark('Uploading video');
+      mark(`Uploading video (${(file.size / 1024 / 1024).toFixed(0)} MB)`);
       const videoBlob = await upload(`${folder}/video-${file.name}`, file, {
         access: 'public',
         handleUploadUrl: '/api/admin/blob',
-        multipart: true,
+        multipart: file.size > MULTIPART_THRESHOLD,
       });
 
       mark('Uploading audio');
       const audioBlob = await upload(`${folder}/audio.mp3`, audio, {
         access: 'public',
         handleUploadUrl: '/api/admin/blob',
-        multipart: true,
+        multipart: audio.size > MULTIPART_THRESHOLD,
         contentType: 'audio/mpeg',
       });
 
@@ -103,7 +104,6 @@ export default function UploadForm() {
       if (!createRes.ok) throw new Error(created.error ?? `Saving failed (HTTP ${createRes.status})`);
 
       mark('Transcribing and translating. Long interviews can take several minutes; keep this tab open.');
-      // Processing can exceed the request time limit. The detail page shows the status and a retry button.
       await fetch(`/api/admin/interviews/${created.id}/process`, { method: 'POST' }).catch(() => {});
       router.push(`/admin/interviews/${created.id}`);
     } catch (err) {
@@ -121,8 +121,7 @@ export default function UploadForm() {
         <label htmlFor="video">Interview video</label>
         <input className="input" id="video" name="video" type="file" accept="video/*" required disabled={busy} />
         <span className="small muted">
-          MP4 (H.264) recommended. Files over about 1.5 GB may be too large for the browser to prepare.
-          The audio is extracted in your browser for transcription.
+          MP4 (H.264) recommended. The audio is extracted in your browser for transcription.
         </span>
       </div>
 
