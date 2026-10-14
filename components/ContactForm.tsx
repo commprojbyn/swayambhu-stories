@@ -57,7 +57,6 @@ export default function ContactForm() {
           placeholder="Placeholder prompt describing what kind of story to share."
         />
       </div>
-// for
 
       <div className="field">
         <label htmlFor="media">Audio or Video (optional)</label>

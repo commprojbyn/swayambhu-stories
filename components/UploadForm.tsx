@@ -6,18 +6,27 @@ import { extractAudio } from '@/lib/extract-audio';
 import { slugify } from '@/lib/format';
 import { LANGUAGES } from '@/lib/types';
 
+// Reads the video length. The preview link is removed only after the browser
+// has finished with it, which avoids the ERR_FILE_NOT_FOUND message.
 function videoDuration(file: File): Promise<number> {
   return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
     const v = document.createElement('video');
-    v.preload = 'metadata';
-    v.onloadedmetadata = () => {
+    const url = URL.createObjectURL(file);
+    const cleanup = () => {
+      v.removeAttribute('src');
+      v.load();
       URL.revokeObjectURL(url);
-      resolve(v.duration || 0);
+    };
+    v.preload = 'metadata';
+    v.muted = true;
+    v.onloadedmetadata = () => {
+      const d = Number.isFinite(v.duration) ? v.duration : 0;
+      cleanup();
+      resolve(d);
     };
     v.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('Could not read this video file. Try an MP4 or MOV.'));
+      cleanup();
+      reject(new Error('This browser cannot read the video. Try an MP4 (H.264) file.'));
     };
     v.src = url;
   });
@@ -31,8 +40,7 @@ export default function UploadForm() {
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const f = new FormData(form);
+    const f = new FormData(e.currentTarget);
     const file = f.get('video') as File | null;
     const title = String(f.get('title') ?? '').trim();
     if (!file || file.size === 0) return setError('Choose a video file.');
@@ -40,24 +48,32 @@ export default function UploadForm() {
 
     setBusy(true);
     setError(null);
+
+    // Remember the current stage so any error says where it happened.
+    let stage = 'Starting';
+    const mark = (s: string) => {
+      stage = s;
+      setStep(s);
+    };
+
     try {
       const stamp = Date.now().toString(36);
       const folder = `interviews/${slugify(title)}-${stamp}`;
 
-      setStep('Reading video…');
+      mark('Reading video length');
       const duration = await videoDuration(file);
 
-      setStep('Preparing audio for transcription (runs in your browser)…');
-      const audio = await extractAudio(file, (p) => setStep(`Preparing audio… ${p}%`));
+      mark('Preparing audio in your browser (this can take a while for long videos)');
+      const audio = await extractAudio(file, (p) => mark(`Preparing audio… ${p}%`));
 
-      setStep('Uploading video…');
+      mark('Uploading video');
       const videoBlob = await upload(`${folder}/video-${file.name}`, file, {
         access: 'public',
         handleUploadUrl: '/api/admin/blob',
         multipart: true,
       });
 
-      setStep('Uploading audio…');
+      mark('Uploading audio');
       const audioBlob = await upload(`${folder}/audio.mp3`, audio, {
         access: 'public',
         handleUploadUrl: '/api/admin/blob',
@@ -65,7 +81,7 @@ export default function UploadForm() {
         contentType: 'audio/mpeg',
       });
 
-      setStep('Saving interview details…');
+      mark('Saving interview details');
       const createRes = await fetch('/api/admin/interviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,15 +99,16 @@ export default function UploadForm() {
           duration_seconds: Math.round(duration),
         }),
       });
-      const created = await createRes.json();
-      if (!createRes.ok) throw new Error(created.error ?? 'Could not save the interview');
+      const created = await createRes.json().catch(() => ({}));
+      if (!createRes.ok) throw new Error(created.error ?? `Saving failed (HTTP ${createRes.status})`);
 
-      setStep('Transcribing and translating. Long interviews can take several minutes; keep this tab open.');
-      // Processing may exceed a browser timeout; the detail page shows status and offers a retry.
+      mark('Transcribing and translating. Long interviews can take several minutes; keep this tab open.');
+      // Processing can exceed the request time limit. The detail page shows the status and a retry button.
       await fetch(`/api/admin/interviews/${created.id}/process`, { method: 'POST' }).catch(() => {});
       router.push(`/admin/interviews/${created.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Stopped during "${stage}": ${msg}`);
       setBusy(false);
     }
   }
@@ -103,12 +120,15 @@ export default function UploadForm() {
       <div className="field">
         <label htmlFor="video">Interview video</label>
         <input className="input" id="video" name="video" type="file" accept="video/*" required disabled={busy} />
-        <span className="small muted">MP4 or MOV recommended. The audio is extracted in your browser for transcription.</span>
+        <span className="small muted">
+          MP4 (H.264) recommended. Files over about 1.5 GB may be too large for the browser to prepare.
+          The audio is extracted in your browser for transcription.
+        </span>
       </div>
 
       <div className="field">
         <label htmlFor="title">Title</label>
-        <input className="input" id="title" name="title" required disabled={busy} placeholder="e.g. Dawn rituals at Swayambhu" />
+        <input className="input" id="title" name="title" required disabled={busy} placeholder="Interview title" />
       </div>
 
       <div className="grid-2">
@@ -134,21 +154,19 @@ export default function UploadForm() {
 
       <div className="field">
         <label htmlFor="topics">Topics (comma separated)</label>
-        <input className="input" id="topics" name="topics" placeholder="rituals, prayer wheels, festivals" disabled={busy} />
+        <input className="input" id="topics" name="topics" placeholder="topic one, topic two" disabled={busy} />
       </div>
 
       <div className="field">
         <label htmlFor="summary">Summary</label>
-        <textarea className="textarea" id="summary" name="summary" disabled={busy} placeholder="A short description shown on the interview page and used in search." />
+        <textarea className="textarea" id="summary" name="summary" disabled={busy} placeholder="A short description shown on the interview page." />
       </div>
 
       <label className="checkbox" style={{ marginBottom: 20 }}>
         <input type="checkbox" name="published" defaultChecked disabled={busy} /> Publish on the public archive once transcribed
       </label>
 
-      {busy && (
-        <div className="notice">{step}</div>
-      )}
+      {busy && <div className="notice">{step}</div>}
 
       <button className="btn" type="submit" disabled={busy}>
         {busy ? 'Working…' : 'Upload and transcribe'}
